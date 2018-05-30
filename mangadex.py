@@ -2,7 +2,7 @@
 #
 # Author: Richard Barajas
 # Email : barajasr89@gmail.com
-# Date  : 2018.05.21
+# Date  : 2018.05.29
 #
 
 import argparse
@@ -10,6 +10,8 @@ import bs4
 import os.path
 import subprocess
 import urllib3
+
+from urllib.parse import urljoin
 
 parser = argparse.ArgumentParser()
 parser.add_argument('url',
@@ -53,7 +55,8 @@ def getImageList(url):
     # Otherwise, requires parse each page for image src
     # Find dropdown menu for number of pages to request
     pages = len(soup.find('div', {'class': 'col-md-2'}).find_all('option'))
-    return [base + str(i) + post for i in range(1, pages + 1)]
+    root = 'https://www.mangadex.org/'
+    return [urljoin(root, base + str(i) + post) for i in range(1, pages + 1)]
 
 def downloadImages(imageUrls):
     print('Pages to download:', len(imageUrls))
