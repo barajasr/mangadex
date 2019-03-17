@@ -50,7 +50,7 @@ class ChaptersJson:
                                             value['title'],
                                             value['lang_code'],
                                             value['group_name']))
-        return sorted(chapters, key=attrgetter('chapterNumber'))
+        return sorted(chapters, key=lambda chapterInfo: float(chapterInfo.chapterNumber))
 
 ChapterInfo = namedtuple('ChapterInfo', 'chapterId volume chapterNumber title lang_code group_name')
 ChapterPages = namedtuple('ChapterPages', 'volume chapter title server hashNumber pages')
