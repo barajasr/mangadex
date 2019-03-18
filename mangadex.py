@@ -2,7 +2,7 @@
 #
 # Author: Richard Barajas
 # Email : barajasr89@gmail.com
-# Date  : 2019.03.16
+# Date  : 2019.03.17
 #
 
 import argparse
@@ -12,7 +12,6 @@ import subprocess
 import urllib3
 
 from collections import namedtuple
-from operator import attrgetter
 from pick import pick
 from selenium import webdriver
 from urllib.parse import urljoin
@@ -75,6 +74,8 @@ def allChapters(url, directory='./'):
         count += 1
 
 def archiveChapter(filenames, archiveName, clean=True, directory='./'):
+    if filenames == []:
+        return
     if directory != './':
         makeDirectory(directory)
     archiveName = archiveName.replace(' ', '_')
@@ -106,7 +107,6 @@ def downloadImages(chapterPages, directory='./'):
 
     if directory != './':
         makeDirectory(directory)
-    command = 'wget -q --show-progress -P {} '.format(directory)
     filenames = []
     print('Pages to download:', len(chapterPages.pages))
 
@@ -114,13 +114,22 @@ def downloadImages(chapterPages, directory='./'):
         filename = os.path.join(directory, page)
         url = '{}{}/{}'.format(chapterPages.server, chapterPages.hashNumber, page)
         if not os.path.isfile(filename):
+            browser.set_window_size(4000,4000)
+            browser.get(url)
+            image = browser.find_element_by_tag_name('img')
+            imageSize = image.size
+            browser.set_window_size(imageSize['width'], imageSize['height'])
+            if '.png' not in filename:
+                filename = filename.rsplit('.', 1)[0] + '.png'
+            print(filename, end='... ', flush=True)
             try:
-                subprocess.check_call((command + url).split())
-            except:
-                # Fail loudly
-                raise ValueError('{} not downloaded.'.format(filename))
+                with open(filename, 'wb') as openFile:
+                    openFile.write(image.screenshot_as_png)
+            except IOError:
+                print('failed to download.')
+            print('saved.')
         else:
-            print(page, '\tAlready exists')
+            print(filename, '\tAlready exists')
         filenames.append(filename)
     return filenames
 
