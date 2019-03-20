@@ -2,7 +2,7 @@
 #
 # Author: Richard Barajas
 # Email : barajasr89@gmail.com
-# Date  : 2019.03.17
+# Date  : 2019.03.19
 #
 
 import argparse
@@ -55,8 +55,12 @@ ChapterInfo = namedtuple('ChapterInfo', 'chapterId volume chapterNumber title la
 ChapterPages = namedtuple('ChapterPages', 'volume chapter title server hashNumber pages')
 MangaInfo = namedtuple('MangaInfo', 'artist author coverUrl description')
 
-# Remove logging
-browser = webdriver.PhantomJS(service_log_path=os.path.devnull)
+options = webdriver.ChromeOptions()
+options.headless = True
+options.add_argument('disable-infobars')
+options.add_argument('test-type')
+options.add_argument('--disable-extensions')
+browser = webdriver.Chrome(chrome_options=options)
 browser.implicitly_wait(10)
 
 def allChapters(url, directory='./'):
@@ -88,7 +92,11 @@ def archiveChapter(filenames, archiveName, clean=True, directory='./'):
             print('Missing:', page)
         return
     command = 'rar a {} {}'.format(archiveName, ' '.join(filenames))
-    subprocess.call(command.split())
+    try:
+        subprocess.check_call(command.split())
+    except subprocess.CalledProcessError as error:
+        print('Failed to archive', archiveName)
+        raise
 
     if clean:
         command = 'rm {}'.format(' '.join(filenames))
@@ -111,26 +119,24 @@ def downloadImages(chapterPages, directory='./'):
     print('Pages to download:', len(chapterPages.pages))
 
     for page in chapterPages.pages:
-        filename = os.path.join(directory, page)
         url = '{}{}/{}'.format(chapterPages.server, chapterPages.hashNumber, page)
+        if '.png' not in page:
+            page = page.rsplit('.', 1)[0] + '.png'
+        filename = os.path.join(directory, page)
+
         if not os.path.isfile(filename):
+            print(filename, end='... ', flush=True)
             browser.set_window_size(4000,4000)
             browser.get(url)
             image = browser.find_element_by_tag_name('img')
             imageSize = image.size
             browser.set_window_size(imageSize['width'], imageSize['height'])
-            if '.png' not in filename:
-                filename = filename.rsplit('.', 1)[0] + '.png'
-            print(filename, end='... ', flush=True)
-            try:
-                with open(filename, 'wb') as openFile:
-                    openFile.write(image.screenshot_as_png)
-            except IOError:
-                print('failed to download.')
+            image.screenshot(filename)
             print('saved.')
         else:
             print(filename, '\tAlready exists')
         filenames.append(filename)
+
     return filenames
 
 def filterChapters(chapters):
